@@ -1,0 +1,11 @@
+{
+    "media": [
+		{
+    	    "type": "png",
+    	    "defName": "WATCH_MENU_ICON",
+        	"file": "watch_menu_icon.png"
+		}
+    ],
+    "friendlyVersion": "VERSION",
+    "versionDefName": "APP_RESOURCES"
+}

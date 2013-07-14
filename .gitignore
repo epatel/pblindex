@@ -1,0 +1,10 @@
+*.ld
+*.py
+*.pyc
+.lock*
+waf
+lib
+build
+tools
+include
+wscript
