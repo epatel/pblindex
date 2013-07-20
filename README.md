@@ -14,3 +14,7 @@ $PEBBLE_SDK/tools/create_pebble_project.py --symlink-only $PEBBLE_SDK/sdk/ .
 </pre>
 
 But don't forget to edit source file `pblindex.c` (see `#error`'s) for personalized use.
+
+## pbl capture ##
+
+Branch `capture` contain a version that takes a screenshot and sends it to [pbl capture](https://github.com/epatel/pblcapture)
