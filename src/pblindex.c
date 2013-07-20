@@ -28,9 +28,9 @@
 
 #include "resource_ids.auto.h"
 
-#include "http.h"
+#include "pblcapture.h"
 
-PBL_APP_INFO(HTTP_UUID,
+PBL_APP_INFO(PBL_CAPTURE_UUID,
              "pbl-index", "Edward Patel",
              1, 0,
              RESOURCE_ID_WATCH_MENU_ICON,
@@ -39,74 +39,11 @@ PBL_APP_INFO(HTTP_UUID,
 #define NUM_LINES 5
 #define COLUMN2_WIDTH 65
 
-#error Set values below, should be different, one unique for each request
-#define PBLINDEX_NAMES_COOKIE some-unique-value
-#define PBLINDEX_VALUES_COOKIE some-unique-value
-
 Window window;
 TextLayer textLayer[2][NUM_LINES];
 
-void set_display_fail(char *text) {
-    text_layer_set_text(&textLayer[0][0], "Failed");
-    text_layer_set_text(&textLayer[0][1], text);
-    for (int i=2; i<NUM_LINES; i++)
-        text_layer_set_text(&textLayer[0][i], "");
-    for (int i=0; i<NUM_LINES; i++)
-        text_layer_set_text(&textLayer[1][i], "");
-}
-
-void request_names() {
-    DictionaryIterator *body;
-#error Set URL below
-    // http://nnnn/nnnn.names should return something like (not over 76 bytes)
-    // {"0":"OMXS30","1":"Dow Jones","2":"Nasdaq","3":"DAX","4":"Nikkei"}
-    if (http_out_get("http://nnnn/nnnn.names", false, PBLINDEX_NAMES_COOKIE, &body) != HTTP_OK ||
-        http_out_send() != HTTP_OK) {
-        set_display_fail("names..");
-    }
-}
-
-void request_values() {
-    DictionaryIterator *body;
-#error Set URL below
-    // http://nnnn/nnnn.values should return something like (not over 76 bytes)
-    // {"0":"1210","1":"15464","2":"3600","3":"8212","4":"14506"}
-    if (http_out_get("http://nnnn/nnnn.values", false, PBLINDEX_VALUES_COOKIE, &body) != HTTP_OK ||
-        http_out_send() != HTTP_OK) {
-        set_display_fail("values..");
-    }
-}
-
-void failed(int32_t cookie, int http_status, void *ctx) {
-    if (cookie == 0 ||
-        cookie == PBLINDEX_NAMES_COOKIE ||
-        cookie == PBLINDEX_VALUES_COOKIE) {
-        set_display_fail("failed()");
-    }
-}
-
-void success(int32_t cookie, int http_status, DictionaryIterator *dict, void *ctx) {
-    if (cookie != PBLINDEX_NAMES_COOKIE && cookie != PBLINDEX_VALUES_COOKIE)
-        return;
-    int li = cookie == PBLINDEX_NAMES_COOKIE ? 0 : 1;
-    for (int i=0; i<NUM_LINES; i++) {
-        Tuple *value = dict_find(dict, i);
-        if (value) {
-            static char str[2][NUM_LINES][16];
-            strcpy(str[li][i], value->value->cstring);
-            text_layer_set_text(&textLayer[li][i], str[li][i]);
-        } else {
-            text_layer_set_text(&textLayer[li][i], "-");
-        }
-    }
-    if (!li)
-        request_values();
-    else
-        light_enable_interaction();
-}
-
-void reconnect(void *ctx) {
-    request_names();
+void timer_handler(AppContextRef app_ctx, AppTimerHandle handle, uint32_t cookie) {
+	pbl_capture_send();
 }
 
 void init_handler(AppContextRef ctx) {
@@ -125,37 +62,35 @@ void init_handler(AppContextRef ctx) {
         text_layer_set_text_color(&textLayer[1][i], GColorWhite);
         text_layer_set_text_alignment(&textLayer[1][i], GTextAlignmentRight);
     }
-    
-    text_layer_set_text(&textLayer[0][0], "pbl-index");
-    text_layer_set_text(&textLayer[0][1], "by epatel");
-    text_layer_set_text(&textLayer[0][3], "loading...");
+
+	text_layer_set_text(&textLayer[0][0], "OMXS30");
+	text_layer_set_text(&textLayer[0][1], "Dow Jones");
+	text_layer_set_text(&textLayer[0][2], "Nasdaq");
+	text_layer_set_text(&textLayer[0][3], "DAX");
+	text_layer_set_text(&textLayer[0][4], "Nikkei");
+	text_layer_set_text(&textLayer[1][0], "+0,30 %");
+	text_layer_set_text(&textLayer[1][1], "-0,03 %");
+	text_layer_set_text(&textLayer[1][2], "-0,66 %");
+	text_layer_set_text(&textLayer[1][3], "-0,07 %");
+	text_layer_set_text(&textLayer[1][4], "-1,48 %");
     
     for (int i=0; i<NUM_LINES; i++) {
         layer_add_child(&window.layer, &textLayer[0][i].layer);
         layer_add_child(&window.layer, &textLayer[1][i].layer);
     }
-    
-    http_set_app_id(PBLINDEX_NAMES_COOKIE);
-    
-    http_register_callbacks((HTTPCallbacks){
-        .failure = failed,
-        .success = success,
-        .reconnect = reconnect,
-    }, NULL);
-    
-    request_names();
+
+	prepare_pbl_capture_init(ctx);
+
+	app_timer_send_event(ctx, 1000, 1);
 }
 
 void pbl_main(void *params) {
     PebbleAppHandlers handlers = {
         .init_handler = &init_handler,
-        .messaging_info = {
-            .buffer_sizes = {
-                .inbound = 124, // 124 safe for Android
-                .outbound = 256,
-            }
-        },
+		.timer_handler = timer_handler,
     };
     
+	prepare_pbl_capture_main(&handlers);
+	
     app_event_loop(params, &handlers);
 }
