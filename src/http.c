@@ -6,6 +6,7 @@
 #define HTTP_COOKIE_KEY 0xFFFC
 #define HTTP_CONNECT_KEY 0xFFFB
 #define HTTP_USE_GET_KEY 0xFFFA
+#define HTTP_FRAMEBUFFER_SLICE 0xFFF9
 	
 #define HTTP_APP_ID_KEY 0xFFF2
 #define HTTP_COOKIE_STORE_KEY 0xFFF0
@@ -65,6 +66,8 @@ HTTPResult http_out_send() {
 	return result;
 }
 
+void http_capture_out_sent(DictionaryIterator *sent, void *context);
+
 bool http_register_callbacks(HTTPCallbacks callbacks, void* context) {
 	http_callbacks = callbacks;
 	if(callbacks_registered) {
@@ -74,6 +77,7 @@ bool http_register_callbacks(HTTPCallbacks callbacks, void* context) {
 	if(!callbacks_registered) {
 		app_callbacks = (AppMessageCallbacksNode){
 			.callbacks = {
+				.out_sent = http_capture_out_sent,
 				.out_failed = app_send_failed,
 				.in_received = app_received,
 				.in_dropped = app_dropped,

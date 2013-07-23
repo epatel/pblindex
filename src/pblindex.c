@@ -29,6 +29,7 @@
 #include "resource_ids.auto.h"
 
 #include "http.h"
+#include "httpcapture.h"
 
 PBL_APP_INFO(HTTP_UUID,
              "pbl-index", "Edward Patel",
@@ -99,10 +100,12 @@ void success(int32_t cookie, int http_status, DictionaryIterator *dict, void *ct
             text_layer_set_text(&textLayer[li][i], "-");
         }
     }
-    if (!li)
+    if (!li) {
         request_values();
-    else
+    } else {
         light_enable_interaction();
+		http_capture_send(20);
+	}
 }
 
 void reconnect(void *ctx) {
@@ -142,8 +145,10 @@ void init_handler(AppContextRef ctx) {
         .success = success,
         .reconnect = reconnect,
     }, NULL);
-    
-    request_names();
+
+	http_capture_init(ctx);
+	
+	request_names();
 }
 
 void pbl_main(void *params) {
@@ -157,5 +162,7 @@ void pbl_main(void *params) {
         },
     };
     
+	http_capture_main(&handlers);
+	
     app_event_loop(params, &handlers);
 }
