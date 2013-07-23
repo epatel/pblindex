@@ -32,6 +32,8 @@ void http_capture_init(AppContextRef app_ctx);
 void http_capture_send(int wait); // in milliseconds
 ```
 
+Another example can be find [here](https://github.com/epatel/pebble-robotoweather/tree/http_capture), pebble robotoweather with added screenshot calls.
+
 ## pbl capture ##
 
 The branch `capture` contain a version that takes a screenshot and sends it to [pbl capture](https://github.com/epatel/pblcapture)
