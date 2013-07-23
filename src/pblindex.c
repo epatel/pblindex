@@ -31,6 +31,8 @@
 #include "http.h"
 #include "httpcapture.h"
 
+#define MAKE_SCREENSHOT 0
+
 PBL_APP_INFO(HTTP_UUID,
              "pbl-index", "Edward Patel",
              1, 0,
@@ -104,7 +106,9 @@ void success(int32_t cookie, int http_status, DictionaryIterator *dict, void *ct
         request_values();
     } else {
         light_enable_interaction();
+#if MAKE_SCREENSHOT
 		http_capture_send(20);
+#endif
 	}
 }
 
@@ -146,7 +150,9 @@ void init_handler(AppContextRef ctx) {
         .reconnect = reconnect,
     }, NULL);
 
+#if MAKE_SCREENSHOT
 	http_capture_init(ctx);
+#endif
 	
 	request_names();
 }
@@ -162,7 +168,9 @@ void pbl_main(void *params) {
         },
     };
     
+#if MAKE_SCREENSHOT
 	http_capture_main(&handlers);
+#endif
 	
     app_event_loop(params, &handlers);
 }

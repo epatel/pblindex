@@ -15,9 +15,9 @@ $PEBBLE_SDK/tools/create_pebble_project.py --symlink-only $PEBBLE_SDK/sdk/ .
 
 But don't forget to edit source file `pblindex.c` (see `#error`'s) for personalized use.
 
-## http capture ##
+### http capture ###
 
-The branch `http_capture` contain a version that takes a screenshot and sends it to [httpebble-ios](https://github.com/epatel/httpebble-ios) (my modified version of [httpebble-ios](https://github.com/Katharine/httpebble-ios))
+This version has a compile option to take a screenshot and sends it to [httpebble-ios](https://github.com/epatel/httpebble-ios) (my modified version of [httpebble-ios](https://github.com/Katharine/httpebble-ios)). Enable it by setting `#define MAKE_SCREENSHOT 1` in `pblindex.c`
 
 The API is very simple. There is a two step setup, and a function to capture the screen.
 
@@ -33,7 +33,3 @@ void http_capture_send(int wait); // in milliseconds
 ```
 
 Another example can be find [here](https://github.com/epatel/pebble-robotoweather/tree/http_capture), pebble robotoweather with added screenshot calls.
-
-## pbl capture ##
-
-The branch `capture` contain a version that takes a screenshot and sends it to [pbl capture](https://github.com/epatel/pblcapture)
