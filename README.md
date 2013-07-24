@@ -32,4 +32,4 @@ void http_capture_init(AppContextRef app_ctx);
 void http_capture_send(int wait); // in milliseconds
 ```
 
-Another example can be find [here](https://github.com/epatel/pebble-robotoweather/tree/http_capture), pebble robotoweather with added screenshot calls.
+Another example can be find [here](https://github.com/epatel/pebble-robotoweather/tree/http_capture), pebble robotoweather with added screenshot calls. And another example can be found [here](https://bitbucket.org/epatel/thecommandline), which didn't use httpebble to start with.
