@@ -106,9 +106,9 @@ void success(int32_t cookie, int http_status, DictionaryIterator *dict, void *ct
         request_values();
     } else {
         light_enable_interaction();
-#if MAKE_SCREENSHOT
-		http_capture_send(20);
-#endif
+//#if MAKE_SCREENSHOT
+//		http_capture_send(20);
+//#endif
 	}
 }
 

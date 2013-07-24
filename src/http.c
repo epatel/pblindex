@@ -1,5 +1,7 @@
 #include "pebble_os.h"
+
 #include "http.h"
+#include "httpcapture.h"
 
 #define HTTP_URL_KEY 0xFFFF
 #define HTTP_STATUS_KEY 0xFFFE
@@ -211,18 +213,28 @@ static void app_received(DictionaryIterator* received, void* context) {
 		}
 		return;
 	}
+	
+	// Capture screen
+	tuple = dict_find(received, HTTP_FRAMEBUFFER_SLICE);
+	if(tuple) {
+		http_capture_send(0);
+		return;
+	}
+	
 	// Time response (special: no app id)
 	tuple = dict_find(received, HTTP_TIME_KEY);
 	if(tuple) {
 		app_received_time(tuple->value->uint32, received, context);
 		return;
 	}
+	
 	// Location response (special: no app id)
 	tuple = dict_find(received, HTTP_LOCATION_KEY);
 	if(tuple) {
 		app_received_location(tuple->value->uint32, received, context);
 		return;
 	}
+		
 	// Check for the app id
 	tuple = dict_find(received, HTTP_APP_ID_KEY);
 	if(!tuple) {
