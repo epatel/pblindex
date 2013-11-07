@@ -30,6 +30,18 @@ static bool http_capture_sending = false;
 static unsigned char http_capture_frameBuffer[18*168];
 static int http_capture_sentLen;
 
+// The *hack* to get to the framebuffer
+struct GContext {
+	void **ptr;
+};
+struct GContext *gctx = NULL;
+
+static Layer *http_capture_layer = NULL;
+
+static void capture_layer_update_callback(struct Layer *layer, GContext *ctx) {
+	gctx = ctx;
+}
+
 static void http_capture_send_buffer(void *userdata) {
 	int len = 64;
 	if (http_capture_sentLen+len > 18*168)
@@ -62,13 +74,9 @@ void http_capture_out_sent(DictionaryIterator *sent, void *context) {
 		http_capture_sending = false;
 }
 
-// The *hack* to get to the framebuffer
-struct GContext {
-	void **ptr;
-};
-struct GContext *gctx;
-
 static void http_capture_make_framebuffer_copy() {
+	if (!gctx)
+		return;
 	unsigned char *ptr = (unsigned char *)(gctx->ptr);
 	int len = 0;
 	http_capture_sentLen = 0;
@@ -88,8 +96,15 @@ static void http_capture_start(void *userdata) {
 // ----------------------------------------------------------------------
 // External API
 
-void http_capture_set_gcontext(GContext *_gctx) {
-	gctx = _gctx;
+void http_capture_set_window(Window *window) {
+ 	http_capture_layer = layer_create(GRect(0, 0, 144, 168));
+  	layer_set_update_proc(http_capture_layer, capture_layer_update_callback);
+  	layer_add_child(window_get_root_layer(window), http_capture_layer);
+}
+
+void http_capture_deinit() {
+	if (http_capture_layer)
+		layer_destroy(http_capture_layer);
 }
 
 void http_capture_send(int wait) {

@@ -22,5 +22,11 @@
  
  =========================================================================== */
 
-void http_capture_set_gcontext(GContext *_gctx);
+// Call this to setup screen capture handling
+void http_capture_set_window(Window *window);
+
+// Call this when deiniting the app
+void http_capture_deinit();
+
+// Call this to force a screen capture from the app
 void http_capture_send(int wait); // in milliseconds

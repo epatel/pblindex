@@ -36,11 +36,6 @@
 
 Window *window;
 TextLayer *textLayer[2][NUM_LINES];
-Layer *capture_layer;
-
-void capture_layer_update_callback(struct Layer *me, GContext *ctx) {
-  http_capture_set_gcontext(ctx);
-}
 
 void set_display_fail(char *text) {
     text_layer_set_text(textLayer[0][0], "Failed");
@@ -132,11 +127,9 @@ void handle_init() {
     	layer_add_child(window_get_root_layer(window), text_layer_get_layer(textLayer[1][i]));
     }
     
- 	capture_layer = layer_create(GRect(0, 0, 144, 168));
-  	layer_set_update_proc(capture_layer, capture_layer_update_callback);
-  	layer_add_child(window_get_root_layer(window), capture_layer);
-
 	app_message_open(124, 256);
+
+    http_capture_set_window(window);
     
     http_set_app_id(PBLINDEX_NAMES_COOKIE);
     
@@ -150,7 +143,7 @@ void handle_init() {
 }
 
 void handle_deinit() {
-	layer_destroy(capture_layer);
+    http_capture_deinit();
 	for (int i=0; i<NUM_LINES; i++) {
 		text_layer_destroy(textLayer[0][i]);
 		text_layer_destroy(textLayer[1][i]);
