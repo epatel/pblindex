@@ -22,11 +22,5 @@
  
  =========================================================================== */
 
-// Setup step #1 - Call this is in pbl_main()
-void http_capture_main(PebbleAppHandlers *handlers);
-
-// Setup step #2 - Call this in the init_handler
-void http_capture_init(AppContextRef app_ctx);
-
-// Call this when you want to capture a screenshot
+void http_capture_set_gcontext(GContext *_gctx);
 void http_capture_send(int wait); // in milliseconds

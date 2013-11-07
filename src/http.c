@@ -1,4 +1,4 @@
-#include "pebble_os.h"
+#include "pebble.h"
 
 #include "http.h"
 #include "httpcapture.h"
@@ -27,16 +27,15 @@
 #define HTTP_ALTITUDE_KEY 0xFFE3
 
 static bool callbacks_registered;
-static AppMessageCallbacksNode app_callbacks;
 static HTTPCallbacks http_callbacks;
 static int32_t our_app_id;
 
-static void app_send_failed(DictionaryIterator* failed, AppMessageResult reason, void* context);
-static void app_received(DictionaryIterator* received, void* context);
-static void app_dropped(void* context, AppMessageResult reason);
+static void app_send_failed(DictionaryIterator *failed, AppMessageResult reason, void *context);
+static void app_received(DictionaryIterator *received, void *context);
+static void app_dropped(AppMessageResult reason, void *context);
 
-HTTPResult http_out_get(const char* url, bool use_post, int32_t cookie, DictionaryIterator **iter_out) {
-	AppMessageResult app_result = app_message_out_get(iter_out);
+HTTPResult http_out_get(const char *url, bool use_post, int32_t cookie, DictionaryIterator **iter_out) {
+	AppMessageResult app_result = app_message_outbox_begin(iter_out);
 	if(app_result != APP_MSG_OK) {
 		return app_result;
 	}
@@ -63,43 +62,38 @@ HTTPResult http_out_get(const char* url, bool use_post, int32_t cookie, Dictiona
 
 
 HTTPResult http_out_send() {
-	AppMessageResult result = app_message_out_send();
-	app_message_out_release(); // We don't care if it's already released.
+	AppMessageResult result = app_message_outbox_send();
 	return result;
 }
 
 void http_capture_out_sent(DictionaryIterator *sent, void *context);
 
-bool http_register_callbacks(HTTPCallbacks callbacks, void* context) {
+bool http_register_callbacks(HTTPCallbacks callbacks, void *context) {
 	http_callbacks = callbacks;
-	if(callbacks_registered) {
-		if(app_message_deregister_callbacks(&app_callbacks) == APP_MSG_OK)
-			callbacks_registered = false;
+	if (callbacks_registered) {
+		app_message_deregister_callbacks();
+		callbacks_registered = false;
 	}
-	if(!callbacks_registered) {
-		app_callbacks = (AppMessageCallbacksNode){
-			.callbacks = {
-				.out_sent = http_capture_out_sent,
-				.out_failed = app_send_failed,
-				.in_received = app_received,
-				.in_dropped = app_dropped,
-			},
-			.context = context
-		};
-		if(app_message_register_callbacks(&app_callbacks) == APP_MSG_OK)
-			callbacks_registered = true;
+	if (!callbacks_registered) {
+		app_message_register_inbox_received(app_received);
+		app_message_register_inbox_dropped(app_dropped);
+		app_message_register_outbox_failed(app_send_failed);
+		app_message_register_outbox_sent(http_capture_out_sent);
+		app_message_set_context(context);
+		callbacks_registered = true;
 	}
 	return callbacks_registered;
 }
 
-static void app_send_failed(DictionaryIterator* failed, AppMessageResult reason, void* context) {
-	if(!http_callbacks.failure) return;
+static void app_send_failed(DictionaryIterator *failed, AppMessageResult reason, void *context) {
+	if (!http_callbacks.failure) 
+		return;
 	http_callbacks.failure(0, 1000 + reason, context);
 }
 
-static void app_received_http_response(DictionaryIterator* received, bool success, void* context) {
-	Tuple* status_tuple = dict_find(received, HTTP_STATUS_KEY);
-	Tuple* cookie_tuple = dict_find(received, HTTP_COOKIE_KEY);
+static void app_received_http_response(DictionaryIterator *received, bool success, void *context) {
+	Tuple *status_tuple = dict_find(received, HTTP_STATUS_KEY);
+	Tuple *cookie_tuple = dict_find(received, HTTP_COOKIE_KEY);
 	if(status_tuple == NULL || cookie_tuple == NULL) {
 		if(http_callbacks.failure) {
 			http_callbacks.failure(0, 1000 + HTTP_INVALID_BRIDGE_RESPONSE, context);
@@ -119,13 +113,13 @@ static void app_received_http_response(DictionaryIterator* received, bool succes
 	}
 }
 
-static void app_received_cookie_set_response(int32_t request_id, void* context) {
+static void app_received_cookie_set_response(int32_t request_id, void *context) {
 	if(http_callbacks.cookie_set) {
 		http_callbacks.cookie_set(request_id, true, context);
 	}
 }
 
-static void app_received_cookie_get_response(int32_t request_id, DictionaryIterator* iter, void* context) {
+static void app_received_cookie_get_response(int32_t request_id, DictionaryIterator *iter, void *context) {
 	if(http_callbacks.cookie_batch_get) {
 		http_callbacks.cookie_batch_get(request_id, iter, context);
 	}
@@ -140,18 +134,18 @@ static void app_received_cookie_get_response(int32_t request_id, DictionaryItera
 	}
 }
 
-static void app_received_cookie_fsync_response(bool successful, void* context) {
+static void app_received_cookie_fsync_response(bool successful, void *context) {
 	if(http_callbacks.cookie_fsync) {
 		http_callbacks.cookie_fsync(successful, context);
 	}
 }
-static void app_received_cookie_delete_response(int32_t request_id, void* context) {
+static void app_received_cookie_delete_response(int32_t request_id, void *context) {
 	if(http_callbacks.cookie_delete) {
 		http_callbacks.cookie_delete(request_id, true, context);
 	}
 }
 
-static void app_received_time(uint32_t unixtime, DictionaryIterator *iter, void* context) {
+static void app_received_time(uint32_t unixtime, DictionaryIterator *iter, void *context) {
 	if(!http_callbacks.time) return;
 	int32_t utc_offset;
 	bool is_dst;
@@ -177,7 +171,7 @@ float floatFromUint32(uint32_t value) {
 	return ((struct alias_float*)&value)->f;
 }
 
-static void app_received_location(uint32_t accuracy_int, DictionaryIterator *iter, void* context) {
+static void app_received_location(uint32_t accuracy_int, DictionaryIterator *iter, void *context) {
 	if(!http_callbacks.location) return;
 	float accuracy = floatFromUint32(accuracy_int);
 	float latitude = 0.f;
@@ -204,7 +198,7 @@ static void app_received_location(uint32_t accuracy_int, DictionaryIterator *ite
 	http_callbacks.location(latitude, longitude, altitude, accuracy, context);	
 }
 
-static void app_received(DictionaryIterator* received, void* context) {
+static void app_received(DictionaryIterator *received, void *context) {
 	// Reconnect message (special: no app id)
 	Tuple* tuple = dict_find(received, HTTP_CONNECT_KEY);
 	if(tuple && tuple->value->uint8) {
@@ -216,14 +210,14 @@ static void app_received(DictionaryIterator* received, void* context) {
 	
 	// Capture screen
 	tuple = dict_find(received, HTTP_FRAMEBUFFER_SLICE);
-	if(tuple) {
+	if (tuple) {
 		http_capture_send(0);
 		return;
 	}
 	
 	// Time response (special: no app id)
 	tuple = dict_find(received, HTTP_TIME_KEY);
-	if(tuple) {
+	if (tuple) {
 		app_received_time(tuple->value->uint32, received, context);
 		return;
 	}
@@ -279,7 +273,7 @@ static void app_received(DictionaryIterator* received, void* context) {
 	}
 }
 
-static void app_dropped(void* context, AppMessageResult reason) {
+static void app_dropped(AppMessageResult reason, void *context) {
 	if(!http_callbacks.failure) return;
 	http_callbacks.failure(0, 1000 + reason, context);
 }
@@ -287,7 +281,7 @@ static void app_dropped(void* context, AppMessageResult reason) {
 // Time stuff
 HTTPResult http_time_request() {
 	DictionaryIterator *iter;
-	AppMessageResult app_result = app_message_out_get(&iter);
+	AppMessageResult app_result = app_message_outbox_begin(&iter);
 	if(app_result != APP_MSG_OK) {
 		return app_result;
 	}
@@ -295,15 +289,14 @@ HTTPResult http_time_request() {
 	if(dict_result != DICT_OK) {
 		return dict_result << 12;
 	}
-	app_result = app_message_out_send();
-	app_message_out_release();
+	app_result = app_message_outbox_send();
 	return app_result;
 }
 
 // Location stuff
 HTTPResult http_location_request() {
 	DictionaryIterator *iter;
-	AppMessageResult app_result = app_message_out_get(&iter);
+	AppMessageResult app_result = app_message_outbox_begin(&iter);
 	if(app_result != APP_MSG_OK) {
 		return app_result;
 	}
@@ -311,8 +304,7 @@ HTTPResult http_location_request() {
 	if(dict_result != DICT_OK) {
 		return dict_result << 12;
 	}
-	app_result = app_message_out_send();
-	app_message_out_release();
+	app_result = app_message_outbox_send();
 	return app_result;
 }
 
@@ -322,7 +314,7 @@ void http_set_app_id(int32_t new_app_id) {
 }
 
 HTTPResult http_cookie_set_start(int32_t request_id, DictionaryIterator **iter_out) {
-	AppMessageResult app_result = app_message_out_get(iter_out);
+	AppMessageResult app_result = app_message_outbox_begin(iter_out);
 	if(app_result != APP_MSG_OK) {
 		return app_result;
 	}
@@ -338,76 +330,67 @@ HTTPResult http_cookie_set_start(int32_t request_id, DictionaryIterator **iter_o
 }
 
 HTTPResult http_cookie_set_end() {
-	AppMessageResult result = app_message_out_send();
-	app_message_out_release(); // We don't care if it's already released.
+	AppMessageResult result = app_message_outbox_send();
 	return result;
 }
 
-HTTPResult http_cookie_get_multiple(int32_t request_id, uint32_t* keys, int32_t length) {
+HTTPResult http_cookie_get_multiple(int32_t request_id, uint32_t *keys, int32_t length) {
 	// Basic setup
 	DictionaryIterator *iter;
-	AppMessageResult app_result = app_message_out_get(&iter);
+	AppMessageResult app_result = app_message_outbox_begin(&iter);
 	if(app_result != APP_MSG_OK) {
 		return app_result;
 	}
 	DictionaryResult dict_result = dict_write_int32(iter, HTTP_COOKIE_LOAD_KEY, request_id);
 	if(dict_result != DICT_OK) {
-		app_message_out_release();
 		return dict_result << 12;
 	}
 	dict_result = dict_write_int32(iter, HTTP_APP_ID_KEY, our_app_id);
 	if(dict_result != DICT_OK) {
-		app_message_out_release();
 		return dict_result << 12;
 	}
 	// Add the keys
 	for(int i = 0; i < length; ++i) {
 		dict_result = dict_write_uint8(iter, keys[i], 1);
 		if(dict_result != DICT_OK) {
-			app_message_out_release();
 			return dict_result << 12;
 		}
 	}
 	// Send it.
-	app_result = app_message_out_send();
-	app_message_out_release();
+	app_result = app_message_outbox_send();
 	return app_result;
 }
 
-HTTPResult http_cookie_delete_multiple(int32_t request_id, uint32_t* keys, int32_t length) {
+HTTPResult http_cookie_delete_multiple(int32_t request_id, uint32_t *keys, int32_t length) {
 	// Basic setup
 	DictionaryIterator *iter;
-	AppMessageResult app_result = app_message_out_get(&iter);
+	AppMessageResult app_result = app_message_outbox_begin(&iter);
 	if(app_result != APP_MSG_OK) {
 		return app_result;
 	}
 	DictionaryResult dict_result = dict_write_int32(iter, HTTP_COOKIE_DELETE_KEY, request_id);
 	if(dict_result != DICT_OK) {
-		app_message_out_release();
 		return dict_result << 12;
 	}
 	dict_result = dict_write_int32(iter, HTTP_APP_ID_KEY, our_app_id);
 	if(dict_result != DICT_OK) {
-		app_message_out_release();
 		return dict_result << 12;
 	}
 	// Add the keys
 	for(int i = 0; i < length; ++i) {
 		dict_result = dict_write_uint8(iter, keys[i], 1);
 		if(dict_result != DICT_OK) {
-			app_message_out_release();
 			return dict_result << 12;
 		}
 	}
 	// Send it.
-	app_result = app_message_out_send();
-	app_message_out_release();
+	app_result = app_message_outbox_send();
 	return app_result;
 }
 
 HTTPResult http_cookie_fsync() {
 	DictionaryIterator *iter;
-	AppMessageResult app_result = app_message_out_get(&iter);
+	AppMessageResult app_result = app_message_outbox_begin(&iter);
 	if(app_result != APP_MSG_OK) {
 		return app_result;
 	}
@@ -415,12 +398,11 @@ HTTPResult http_cookie_fsync() {
 	if(dict_result != DICT_OK) {
 		return dict_result << 12;
 	}
-	app_result = app_message_out_send();
-	app_message_out_release();
+	app_result = app_message_outbox_send();
 	return app_result;
 }
 
-HTTPResult http_cookie_set_int(uint32_t request_id, uint32_t key, const void* integer, uint8_t width_bytes, bool is_signed) {
+HTTPResult http_cookie_set_int(uint32_t request_id, uint32_t key, const void *integer, uint8_t width_bytes, bool is_signed) {
 	DictionaryIterator *iter;
 	HTTPResult http_result = http_cookie_set_start(request_id, &iter);
 	if(http_result != HTTP_OK) {
@@ -428,13 +410,12 @@ HTTPResult http_cookie_set_int(uint32_t request_id, uint32_t key, const void* in
 	}
 	DictionaryResult dict_result = dict_write_int(iter, key, integer, width_bytes, is_signed);
 	if(dict_result != DICT_OK) {
-		app_message_out_release();
 		return dict_result << 12;
 	}
 	return http_cookie_set_end();
 }
 
-HTTPResult http_cookie_set_cstring(uint32_t request_id, uint32_t key, const char* value) {
+HTTPResult http_cookie_set_cstring(uint32_t request_id, uint32_t key, const char *value) {
 	DictionaryIterator *iter;
 	HTTPResult http_result = http_cookie_set_start(request_id, &iter);
 	if(http_result != HTTP_OK) {
@@ -442,13 +423,12 @@ HTTPResult http_cookie_set_cstring(uint32_t request_id, uint32_t key, const char
 	}
 	DictionaryResult dict_result = dict_write_cstring(iter, key, value);
 	if(dict_result != DICT_OK) {
-		app_message_out_release();
 		return dict_result << 12;
 	}
 	return http_cookie_set_end();
 }
 
-HTTPResult http_cookie_set_data(uint32_t request_id, uint32_t key, const uint8_t* const value, int length) {
+HTTPResult http_cookie_set_data(uint32_t request_id, uint32_t key, const uint8_t const *value, int length) {
 	DictionaryIterator *iter;
 	HTTPResult http_result = http_cookie_set_start(request_id, &iter);
 	if(http_result != HTTP_OK) {
@@ -456,7 +436,6 @@ HTTPResult http_cookie_set_data(uint32_t request_id, uint32_t key, const uint8_t
 	}
 	DictionaryResult dict_result = dict_write_data(iter, key, value, length);
 	if(dict_result != DICT_OK) {
-		app_message_out_release();
 		return dict_result << 12;
 	}
 	return http_cookie_set_end();

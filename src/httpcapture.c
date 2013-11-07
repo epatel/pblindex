@@ -22,21 +22,15 @@
  
  =========================================================================== */
 
-#include "pebble_os.h"
-#include "pebble_app.h"
+#include "pebble.h"
 
 #include "httpcapture.h"
 
-#define http_capture_COOKIE_send  0x70626c63 // 'pblc'
-#define http_capture_COOKIE_start 0x70626c64 // 'pbld'
-
-static void *http_capture_app_context_ref;
 static bool http_capture_sending = false;
 static unsigned char http_capture_frameBuffer[18*168];
 static int http_capture_sentLen;
-static void (*http_capture_timer_next_handler)(AppContextRef app_ctx, AppTimerHandle handle, uint32_t cookie);
 
-static void http_capture_send_buffer() {
+static void http_capture_send_buffer(void *userdata) {
 	int len = 64;
 	if (http_capture_sentLen+len > 18*168)
 		len = 18*168 - http_capture_sentLen;
@@ -47,7 +41,7 @@ static void http_capture_send_buffer() {
 	Tuplet buf = TupletBytes(1000, &http_capture_frameBuffer[http_capture_sentLen], len);
 
 	DictionaryIterator *iter;
-	app_message_out_get(&iter);
+	app_message_outbox_begin(&iter);
 
 	if (iter == NULL)
 		return;
@@ -58,13 +52,12 @@ static void http_capture_send_buffer() {
 
 	http_capture_sentLen += len;
 
-	app_message_out_send();
-	app_message_out_release();	
+	app_message_outbox_send();
 }
 
 void http_capture_out_sent(DictionaryIterator *sent, void *context) {
 	if (http_capture_sending && http_capture_sentLen < 18*168)
-		app_timer_send_event(http_capture_app_context_ref, 10, http_capture_COOKIE_send);
+		app_timer_register(10, http_capture_send_buffer, NULL);
 	else
 		http_capture_sending = false;
 }
@@ -73,10 +66,10 @@ void http_capture_out_sent(DictionaryIterator *sent, void *context) {
 struct GContext {
 	void **ptr;
 };
+struct GContext *gctx;
 
 static void http_capture_make_framebuffer_copy() {
-	struct GContext *gctx = app_get_current_graphics_context();
-	unsigned char *ptr = (unsigned char *)(*gctx->ptr);
+	unsigned char *ptr = (unsigned char *)(gctx->ptr);
 	int len = 0;
 	http_capture_sentLen = 0;
 	for (int y=0; y<168; y++) {
@@ -87,38 +80,26 @@ static void http_capture_make_framebuffer_copy() {
 	}
 }
  
-static void http_capture_timer_handler(AppContextRef app_ctx, AppTimerHandle handle, uint32_t cookie) {
-	if (cookie == http_capture_COOKIE_send) {
-		http_capture_send_buffer();
-	} else if (cookie == http_capture_COOKIE_start) {
-		http_capture_make_framebuffer_copy();
-		http_capture_send_buffer();
-	} else if (http_capture_timer_next_handler) {
-		http_capture_timer_next_handler(app_ctx, handle, cookie);
-	}
+static void http_capture_start(void *userdata) {
+	http_capture_make_framebuffer_copy();
+	http_capture_send_buffer(NULL);
 }
 
 // ----------------------------------------------------------------------
 // External API
 
+void http_capture_set_gcontext(GContext *_gctx) {
+	gctx = _gctx;
+}
+
 void http_capture_send(int wait) {
 	if (http_capture_sending)
 		return;
+	http_capture_sending = true;
 	if (wait) {
-		http_capture_sending = true;
-		app_timer_send_event(http_capture_app_context_ref, wait, http_capture_COOKIE_start);
+		app_timer_register(wait, http_capture_start, NULL);
 	} else {
 		http_capture_make_framebuffer_copy();
-		http_capture_sending = true;
-		app_timer_send_event(http_capture_app_context_ref, 10, http_capture_COOKIE_send);
+		app_timer_register(10, http_capture_send_buffer, NULL);
 	}
-}
-
-void http_capture_init(AppContextRef app_ctx) {
-	http_capture_app_context_ref = app_ctx;
-}
-
-void http_capture_main(PebbleAppHandlers *handlers) {
-	http_capture_timer_next_handler = handlers->timer_handler;
-	handlers->timer_handler = http_capture_timer_handler;
 }

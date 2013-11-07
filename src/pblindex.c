@@ -22,22 +22,10 @@
  
  =========================================================================== */
 
-#include "pebble_os.h"
-#include "pebble_app.h"
-#include "pebble_fonts.h"
-
-#include "resource_ids.auto.h"
+#include "pebble.h"
 
 #include "http.h"
 #include "httpcapture.h"
-
-#define MAKE_SCREENSHOT 0
-
-PBL_APP_INFO(HTTP_UUID,
-             "pbl-index", "Edward Patel",
-             1, 0,
-             RESOURCE_ID_WATCH_MENU_ICON,
-             APP_INFO_WATCH_FACE);
 
 #define NUM_LINES 5
 #define COLUMN2_WIDTH 65
@@ -46,16 +34,21 @@ PBL_APP_INFO(HTTP_UUID,
 #define PBLINDEX_NAMES_COOKIE some-unique-value
 #define PBLINDEX_VALUES_COOKIE some-unique-value
 
-Window window;
-TextLayer textLayer[2][NUM_LINES];
+Window *window;
+TextLayer *textLayer[2][NUM_LINES];
+Layer *capture_layer;
+
+void capture_layer_update_callback(struct Layer *me, GContext *ctx) {
+  http_capture_set_gcontext(ctx);
+}
 
 void set_display_fail(char *text) {
-    text_layer_set_text(&textLayer[0][0], "Failed");
-    text_layer_set_text(&textLayer[0][1], text);
+    text_layer_set_text(textLayer[0][0], "Failed");
+    text_layer_set_text(textLayer[0][1], text);
     for (int i=2; i<NUM_LINES; i++)
-        text_layer_set_text(&textLayer[0][i], "");
+        text_layer_set_text(textLayer[0][i], "");
     for (int i=0; i<NUM_LINES; i++)
-        text_layer_set_text(&textLayer[1][i], "");
+        text_layer_set_text(textLayer[1][i], "");
 }
 
 void request_names() {
@@ -95,20 +88,17 @@ void success(int32_t cookie, int http_status, DictionaryIterator *dict, void *ct
     for (int i=0; i<NUM_LINES; i++) {
         Tuple *value = dict_find(dict, i);
         if (value) {
-            static char str[2][NUM_LINES][16];
+            static char str[2][NUM_LINES][10];
             strcpy(str[li][i], value->value->cstring);
-            text_layer_set_text(&textLayer[li][i], str[li][i]);
+            text_layer_set_text(textLayer[li][i], str[li][i]);
         } else {
-            text_layer_set_text(&textLayer[li][i], "-");
+            text_layer_set_text(textLayer[li][i], "-");
         }
     }
     if (!li) {
         request_values();
     } else {
         light_enable_interaction();
-//#if MAKE_SCREENSHOT
-//		http_capture_send(20);
-//#endif
 	}
 }
 
@@ -116,31 +106,37 @@ void reconnect(void *ctx) {
     request_names();
 }
 
-void init_handler(AppContextRef ctx) {
-    window_init(&window, "pbl-index");
-    window_set_background_color(&window, GColorBlack);
-    window_stack_push(&window, true);
+void handle_init() {
+	window = window_create();
+    window_set_background_color(window, GColorBlack);
+    window_stack_push(window, true);
     
     for (int i=0; i<NUM_LINES; i++) {
-        text_layer_init(&textLayer[0][i], GRect(5, 7+i*30, 144-5-COLUMN2_WIDTH, 30));
-        text_layer_init(&textLayer[1][i], GRect(144-COLUMN2_WIDTH, 7+i*30, COLUMN2_WIDTH, 30));
-        text_layer_set_font(&textLayer[0][i], fonts_get_system_font(FONT_KEY_GOTHIC_24));
-        text_layer_set_font(&textLayer[1][i], fonts_get_system_font(FONT_KEY_GOTHIC_24));
-        text_layer_set_background_color(&textLayer[0][i], GColorBlack);
-        text_layer_set_background_color(&textLayer[1][i], GColorBlack);
-        text_layer_set_text_color(&textLayer[0][i], GColorWhite);
-        text_layer_set_text_color(&textLayer[1][i], GColorWhite);
-        text_layer_set_text_alignment(&textLayer[1][i], GTextAlignmentRight);
+        textLayer[0][i] = text_layer_create(GRect(5, 7+i*30, 144-5-COLUMN2_WIDTH, 30));
+        textLayer[1][i] = text_layer_create(GRect(144-COLUMN2_WIDTH, 7+i*30, COLUMN2_WIDTH, 30));
+        text_layer_set_font(textLayer[0][i], fonts_get_system_font(FONT_KEY_GOTHIC_24));
+        text_layer_set_font(textLayer[1][i], fonts_get_system_font(FONT_KEY_GOTHIC_24));
+        text_layer_set_background_color(textLayer[0][i], GColorBlack);
+        text_layer_set_background_color(textLayer[1][i], GColorBlack);
+        text_layer_set_text_color(textLayer[0][i], GColorWhite);
+        text_layer_set_text_color(textLayer[1][i], GColorWhite);
+        text_layer_set_text_alignment(textLayer[1][i], GTextAlignmentRight);
     }
     
-    text_layer_set_text(&textLayer[0][0], "pbl-index");
-    text_layer_set_text(&textLayer[0][1], "by epatel");
-    text_layer_set_text(&textLayer[0][3], "loading...");
+    text_layer_set_text(textLayer[0][0], "pbl-index");
+    text_layer_set_text(textLayer[0][1], "by epatel");
+    text_layer_set_text(textLayer[0][3], "loading...");
     
     for (int i=0; i<NUM_LINES; i++) {
-        layer_add_child(&window.layer, &textLayer[0][i].layer);
-        layer_add_child(&window.layer, &textLayer[1][i].layer);
+    	layer_add_child(window_get_root_layer(window), text_layer_get_layer(textLayer[0][i]));
+    	layer_add_child(window_get_root_layer(window), text_layer_get_layer(textLayer[1][i]));
     }
+    
+ 	capture_layer = layer_create(GRect(0, 0, 144, 168));
+  	layer_set_update_proc(capture_layer, capture_layer_update_callback);
+  	layer_add_child(window_get_root_layer(window), capture_layer);
+
+	app_message_open(124, 256);
     
     http_set_app_id(PBLINDEX_NAMES_COOKIE);
     
@@ -150,27 +146,20 @@ void init_handler(AppContextRef ctx) {
         .reconnect = reconnect,
     }, NULL);
 
-#if MAKE_SCREENSHOT
-	http_capture_init(ctx);
-#endif
-	
 	request_names();
 }
 
-void pbl_main(void *params) {
-    PebbleAppHandlers handlers = {
-        .init_handler = &init_handler,
-        .messaging_info = {
-            .buffer_sizes = {
-                .inbound = 124, // 124 safe for Android
-                .outbound = 256,
-            }
-        },
-    };
-    
-#if MAKE_SCREENSHOT
-	http_capture_main(&handlers);
-#endif
-	
-    app_event_loop(params, &handlers);
+void handle_deinit() {
+	layer_destroy(capture_layer);
+	for (int i=0; i<NUM_LINES; i++) {
+		text_layer_destroy(textLayer[0][i]);
+		text_layer_destroy(textLayer[1][i]);
+	}
+	window_destroy(window);
+}
+
+int main() {
+	handle_init();
+    app_event_loop();
+    handle_deinit();
 }
