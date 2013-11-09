@@ -1,5 +1,5 @@
 {
-  "uuid": "1141b628-bc89-498e-b147-049f49c099ad",
+  "uuid": "832b8a96-890f-4a54-95a0-dfd0b23fdeca",
   "shortName": "pbl-index",
   "longName": "pbl-index",
   "companyName": "Edward Patel",
@@ -8,7 +8,10 @@
   "watchapp": {
     "watchface": true
   },
-  "appKeys": {},
+  "appKeys": {
+    "names": 10,
+    "values": 11
+  },
   "resources": {
     "media": [
       {
