@@ -29,7 +29,6 @@ function fetchList(list, url) {
   req.onload = function(e) {
     if (req.readyState == 4) {
       if(req.status == 200) {
-        console.log(req.responseText);
         response = JSON.parse(req.responseText);
         if (response) {
           response[list] = 1;
@@ -45,13 +44,10 @@ function fetchList(list, url) {
 
 Pebble.addEventListener("ready",
                         function(e) {
-                          console.log("connect!" + e.ready);
-                          console.log(e.type);
                         });
 
 Pebble.addEventListener("appmessage",
                         function(e) {
-                          console.log("message");
                           if (e.payload.names) {
                             // http://nnnn/nnnn.names should return something like
                             // {"0":"OMXS30","1":"Dow Jones","2":"Nasdaq","3":"DAX","4":"Nikkei"}
