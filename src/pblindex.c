@@ -84,7 +84,8 @@ static void in_received_handler(DictionaryIterator *iter, void *context) {
     if (!li) {
         request_list(QUOTE_KEY_VALUES);
     } else {
-        pbl_capture_send(200);
+        // PBLCAPTURE 
+        // pbl_capture_send(200);
         light_enable_interaction();
     }
 }
@@ -136,7 +137,8 @@ void handle_init() {
 
     app_message_init();
 
-    pbl_capture_init(window, true);
+    // PBLCAPTURE 
+    // pbl_capture_init(window, true);
 
     app_timer_register(1000, request_list_by_timer, NULL);
 }
