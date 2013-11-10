@@ -144,7 +144,8 @@ void handle_init() {
 }
 
 void handle_deinit() {
-    pbl_capture_deinit();
+    // PBLCAPTURE 
+    // pbl_capture_deinit();
     for (int i=0; i<NUM_LINES; i++) {
         text_layer_destroy(textLayer[0][i]);
         text_layer_destroy(textLayer[1][i]);
