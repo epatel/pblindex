@@ -57,5 +57,16 @@ Pebble.addEventListener("appmessage",
                             // http://nnnn/nnnn.values should return something like
                             // {"0":"1210","1":"15464","2":"3600","3":"8212","4":"14506"}
                             fetchList("values", "http://nnnn/nnnn.values");
+
+/* pblcapture
+ * ----------
+ * Add this part to support the pblcapture screen capture utility 
+ */
+Pebble.addEventListener("appmessage",
+                        function(e) {
+                          if (e.payload[1396920900]) { // 'SCRD'
+                            var req = new XMLHttpRequest();
+                            req.open('POST', "http://127.0.0.1:9898", true);
+                            req.send(JSON.stringify(e.payload));
                           }
                         });

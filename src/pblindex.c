@@ -23,6 +23,7 @@
  =========================================================================== */
 
 #include "pebble.h"
+#include "pblcapture.h"
 
 #define NUM_LINES 5
 #define COLUMN2_WIDTH 65
@@ -80,10 +81,12 @@ static void in_received_handler(DictionaryIterator *iter, void *context) {
             text_layer_set_text(textLayer[li][i], "-");
         }
     }
-    if (!li) 
+    if (!li) {
         request_list(QUOTE_KEY_VALUES);
-    else 
+    } else {
+        pbl_capture_send(200);
         light_enable_interaction();
+    }
 }
 
 static void in_dropped_handler(AppMessageResult reason, void *context) {
@@ -133,10 +136,13 @@ void handle_init() {
 
     app_message_init();
 
+    pbl_capture_init(window, true);
+
     app_timer_register(1000, request_list_by_timer, NULL);
 }
 
 void handle_deinit() {
+    pbl_capture_deinit();
     for (int i=0; i<NUM_LINES; i++) {
         text_layer_destroy(textLayer[0][i]);
         text_layer_destroy(textLayer[1][i]);
