@@ -28,11 +28,12 @@
 #define NUM_LINES 5
 #define COLUMN2_WIDTH 65
 
-#define MAKE_SCREEN_SHOT 0
+#define MAKE_SCREEN_SHOT 1
 
 enum {
-    QUOTE_KEY_NAMES  = 10,
-    QUOTE_KEY_VALUES = 11,
+    KEY_NAMES  = 10,
+    KEY_VALUES = 11,
+    KEY_READY  = 12
 };
 
 Window *window;
@@ -63,16 +64,21 @@ void request_list(int list) {
 }
 
 static void in_received_handler(DictionaryIterator *iter, void *context) {
-    Tuple *names_tuple = dict_find(iter, QUOTE_KEY_NAMES);
-    Tuple *values_tuple = dict_find(iter, QUOTE_KEY_VALUES);
-    int li = -1;
+    Tuple *names_tuple = dict_find(iter, KEY_NAMES);
+    Tuple *values_tuple = dict_find(iter, KEY_VALUES);
+    Tuple *ready_tuple = dict_find(iter, KEY_READY);
+    int li;
 
-    if (names_tuple) 
+    if (names_tuple) {
         li = 0;
-    if (values_tuple) 
+    } else if (values_tuple) {
         li = 1;
-    if (li < 0)
+    } else if (ready_tuple) {
+        request_list(KEY_NAMES);
         return;
+    } else {
+        return;
+    }
     for (int i=0; i<NUM_LINES; i++) {
         Tuple *value = dict_find(iter, i);
         if (value) {
@@ -84,7 +90,7 @@ static void in_received_handler(DictionaryIterator *iter, void *context) {
         }
     }
     if (!li) {
-        request_list(QUOTE_KEY_VALUES);
+        request_list(KEY_VALUES);
     } else {
 #if MAKE_SCREEN_SHOT
         pbl_capture_send(200);
@@ -106,10 +112,6 @@ static void app_message_init() {
     app_message_register_inbox_dropped(in_dropped_handler);
     app_message_register_outbox_failed(out_failed_handler);
     app_message_open(124, 256);
-}
-
-static void request_list_by_timer(void *userdata) {
-    request_list(QUOTE_KEY_NAMES);
 }
 
 void handle_init() {
@@ -143,8 +145,6 @@ void handle_init() {
 #if MAKE_SCREEN_SHOT
     pbl_capture_init(window, true);
 #endif
-
-    app_timer_register(1000, request_list_by_timer, NULL);
 }
 
 void handle_deinit() {

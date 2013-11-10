@@ -44,6 +44,7 @@ function fetchList(list, url) {
 
 Pebble.addEventListener("ready",
                         function(e) {
+                          Pebble.sendAppMessage({"ready":1});
                         });
 
 Pebble.addEventListener("appmessage",

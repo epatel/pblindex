@@ -10,7 +10,8 @@
   },
   "appKeys": {
     "names": 10,
-    "values": 11
+    "values": 11,
+    "ready": 12
   },
   "resources": {
     "media": [
