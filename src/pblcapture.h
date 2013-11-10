@@ -19,7 +19,19 @@
  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  THE SOFTWARE.
- 
+
+ ---------------------------------------------------------------------------
+ Add this part in [pebble-js-app.js]
+
+ Pebble.addEventListener("appmessage",
+                         function(e) {
+                           if (e.payload[1396920900]) { // 'SCRD'
+                             var req = new XMLHttpRequest();
+                             req.open('POST', "http://127.0.0.1:9898", true);
+                             req.send(JSON.stringify(e.payload));
+                           }
+                         });
+
  =========================================================================== */
 
 // Call this to setup screen capture handling

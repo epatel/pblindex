@@ -28,6 +28,8 @@
 #define NUM_LINES 5
 #define COLUMN2_WIDTH 65
 
+#define MAKE_SCREEN_SHOT 0
+
 enum {
     QUOTE_KEY_NAMES  = 10,
     QUOTE_KEY_VALUES = 11,
@@ -84,8 +86,9 @@ static void in_received_handler(DictionaryIterator *iter, void *context) {
     if (!li) {
         request_list(QUOTE_KEY_VALUES);
     } else {
-        // PBLCAPTURE 
-        // pbl_capture_send(200);
+#if MAKE_SCREEN_SHOT
+        pbl_capture_send(200);
+#endif
         light_enable_interaction();
     }
 }
@@ -137,15 +140,17 @@ void handle_init() {
 
     app_message_init();
 
-    // PBLCAPTURE 
-    // pbl_capture_init(window, true);
+#if MAKE_SCREEN_SHOT
+    pbl_capture_init(window, true);
+#endif
 
     app_timer_register(1000, request_list_by_timer, NULL);
 }
 
 void handle_deinit() {
-    // PBLCAPTURE 
-    // pbl_capture_deinit();
+#if MAKE_SCREEN_SHOT
+    pbl_capture_deinit();
+#endif
     for (int i=0; i<NUM_LINES; i++) {
         text_layer_destroy(textLayer[0][i]);
         text_layer_destroy(textLayer[1][i]);

@@ -2,10 +2,8 @@ This project is a watch app for the Pebble. It can fetch and display some online
 
 See [http://memention.com/blog/2013/07/12/Throwing-pebbles.html](http://memention.com/blog/2013/07/12/Throwing-pebbles.html) (note about old version using httpebble)
 
-Setup and build with
-
-<pre>
-pebble build
-</pre>
+Setup and build with the new `pebble build` command.
 
 But don't forget to edit source file `pebble-js-app.js` for personalized use.
+
+This version also contain the usage of the screen shooting utility `pblcapture`. See the usage of `MAKE_SCREEN_SHOT` macro and https://github.com/epatel/pblcapture
