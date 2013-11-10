@@ -101,6 +101,10 @@ static void app_message_init() {
     app_message_open(124, 256);
 }
 
+static void request_list_by_timer(void *userdata) {
+    request_list(QUOTE_KEY_NAMES);
+}
+
 void handle_init() {
     window = window_create();
     window_set_background_color(window, GColorBlack);
@@ -129,7 +133,7 @@ void handle_init() {
 
     app_message_init();
 
-    request_list(QUOTE_KEY_NAMES);
+    app_timer_register(1000, request_list_by_timer, NULL);
 }
 
 void handle_deinit() {
