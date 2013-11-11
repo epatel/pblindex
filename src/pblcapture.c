@@ -26,6 +26,7 @@
 #include "pblcapture.h"
 
 static bool pbl_capture_sending = false;
+static int num_lines = 168;
 static unsigned char pbl_capture_frameBuffer[18*168];
 static int pbl_capture_sentLen;
 static AppMessageOutboxFailed previousAppMessageOutboxFailed = NULL;
@@ -33,7 +34,7 @@ static AppMessageOutboxSent previousAppMessageOutboxSent = NULL;
 
 // The *hack* to get to the framebuffer
 struct GContext {
-    void **ptr;
+    void *ptr;
 };
 struct GContext *gctx = NULL;
 
@@ -46,12 +47,12 @@ static void capture_layer_update_callback(struct Layer *layer, GContext *ctx) {
 static void pbl_capture_send_buffer(void *userdata) {
     int len = 64;
 
-    if (pbl_capture_sentLen+len > 18*168)
-        len = 18*168 - pbl_capture_sentLen;
+    if (pbl_capture_sentLen+len > 18*num_lines)
+        len = 18*num_lines - pbl_capture_sentLen;
     if (len <= 0)
         return;
 
-    Tuplet start = TupletInteger(1396920915, pbl_capture_sentLen); // 'SCRS'
+    Tuplet start = TupletInteger(1396920915, pbl_capture_sentLen+(168-num_lines)*18); // 'SCRS'
     Tuplet buf = TupletBytes(1396920900, &pbl_capture_frameBuffer[pbl_capture_sentLen], len); // 'SCRD'
 
     DictionaryIterator *iter;
@@ -112,7 +113,11 @@ static void sent_handler(DictionaryIterator *sent, void *context) {
 // External API
 
 void pbl_capture_init(Window *window, bool has_msg_open) {
-    pbl_capture_layer = layer_create(GRect(0, 0, 144, 168));
+    if (window_get_fullscreen(window))
+        num_lines = 168;
+    else
+        num_lines = 168-16;
+    pbl_capture_layer = layer_create(GRect(0, 0, 144, num_lines));
     layer_set_update_proc(pbl_capture_layer, capture_layer_update_callback);
     layer_add_child(window_get_root_layer(window), pbl_capture_layer);
     previousAppMessageOutboxFailed = app_message_register_outbox_failed(out_failed_handler);
