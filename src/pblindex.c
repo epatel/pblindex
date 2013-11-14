@@ -23,12 +23,9 @@
  =========================================================================== */
 
 #include "pebble.h"
-#include "pblcapture.h"
 
 #define NUM_LINES 5
 #define COLUMN2_WIDTH 65
-
-#define MAKE_SCREEN_SHOT 1
 
 enum {
     KEY_NAMES  = 10,
@@ -92,9 +89,6 @@ static void in_received_handler(DictionaryIterator *iter, void *context) {
     if (!li) {
         request_list(KEY_VALUES);
     } else {
-#if MAKE_SCREEN_SHOT
-        pbl_capture_send(200);
-#endif
         light_enable_interaction();
     }
 }
@@ -141,16 +135,9 @@ void handle_init() {
     }
 
     app_message_init();
-
-#if MAKE_SCREEN_SHOT
-    pbl_capture_init(window, true);
-#endif
 }
 
 void handle_deinit() {
-#if MAKE_SCREEN_SHOT
-    pbl_capture_deinit();
-#endif
     for (int i=0; i<NUM_LINES; i++) {
         text_layer_destroy(textLayer[0][i]);
         text_layer_destroy(textLayer[1][i]);

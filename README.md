@@ -5,5 +5,3 @@ See [http://memention.com/blog/2013/07/12/Throwing-pebbles.html](http://mementio
 Setup and build with the new `pebble build` command.
 
 But don't forget to edit source file `pebble-js-app.js` for personalized use.
-
-This version also contain the usage of the screen shooting utility `pblcapture`. See the usage of `MAKE_SCREEN_SHOT` macro and https://github.com/epatel/pblcapture
