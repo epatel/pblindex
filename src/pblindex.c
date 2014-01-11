@@ -24,7 +24,7 @@
 
 #include "pebble.h"
 
-#define NUM_LINES 5
+#define NUM_LINES 6
 #define COLUMN2_WIDTH 65
 
 enum {
@@ -64,22 +64,22 @@ static void in_received_handler(DictionaryIterator *iter, void *context) {
     Tuple *names_tuple = dict_find(iter, KEY_NAMES);
     Tuple *values_tuple = dict_find(iter, KEY_VALUES);
     Tuple *ready_tuple = dict_find(iter, KEY_READY);
-    int li;
+    int li = -1;
 
-    if (names_tuple) {
+    if (names_tuple) 
         li = 0;
-    } else if (values_tuple) {
+    if (values_tuple) 
         li = 1;
-    } else if (ready_tuple) {
+    if (ready_tuple) {
         request_list(KEY_NAMES);
         return;
-    } else {
-        return;
     }
+    if (li < 0)
+        return;
     for (int i=0; i<NUM_LINES; i++) {
         Tuple *value = dict_find(iter, i);
         if (value) {
-            static char str[2][NUM_LINES][10];
+            static char str[2][NUM_LINES][16];
             strcpy(str[li][i], value->value->cstring);
             text_layer_set_text(textLayer[li][i], str[li][i]);
         } else {
@@ -114,8 +114,8 @@ void handle_init() {
     window_stack_push(window, true);
 
     for (int i=0; i<NUM_LINES; i++) {
-        textLayer[0][i] = text_layer_create(GRect(5, 7+i*30, 144-5-COLUMN2_WIDTH, 30));
-        textLayer[1][i] = text_layer_create(GRect(144-COLUMN2_WIDTH, 7+i*30, COLUMN2_WIDTH, 30));
+        textLayer[0][i] = text_layer_create(GRect(5, i*28, 144-5-COLUMN2_WIDTH, 28));
+        textLayer[1][i] = text_layer_create(GRect(144-COLUMN2_WIDTH, i*28, COLUMN2_WIDTH, 28));
         text_layer_set_font(textLayer[0][i], fonts_get_system_font(FONT_KEY_GOTHIC_24));
         text_layer_set_font(textLayer[1][i], fonts_get_system_font(FONT_KEY_GOTHIC_24));
         text_layer_set_background_color(textLayer[0][i], GColorBlack);
@@ -127,7 +127,15 @@ void handle_init() {
 
     text_layer_set_text(textLayer[0][0], "pbl-index");
     text_layer_set_text(textLayer[0][1], "by epatel");
-    text_layer_set_text(textLayer[0][3], "loading...");
+    if (bluetooth_connection_service_peek())
+        text_layer_set_text(textLayer[0][3], "loading...");
+    else
+        text_layer_set_text(textLayer[0][3], "not connected...");
+
+    static char batt[8];
+    snprintf(batt, 8, "%d %%", battery_state_service_peek().charge_percent);
+    text_layer_set_text(textLayer[0][5], "battery");
+    text_layer_set_text(textLayer[1][5], batt);
 
     for (int i=0; i<NUM_LINES; i++) {
         layer_add_child(window_get_root_layer(window), text_layer_get_layer(textLayer[0][i]));
