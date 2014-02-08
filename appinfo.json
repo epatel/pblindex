@@ -1,10 +1,10 @@
 {
-  "uuid": "832b8a96-890f-4a54-95a0-dfd0b23fdeca",
+  "uuid": "EFF5F320-7867-48FC-8EE5-C394FCB6CFD7",
   "shortName": "pbl-index",
   "longName": "pbl-index",
   "companyName": "Edward Patel",
-  "versionCode": 2,
-  "versionLabel": "2.3.0",
+  "versionCode": 1,
+  "versionLabel": "1.0.0",
   "watchapp": {
     "watchface": true
   },

@@ -4,4 +4,4 @@ See [http://memention.com/blog/2013/07/12/Throwing-pebbles.html](http://mementio
 
 Setup and build with the new `pebble build` command.
 
-But don't forget to edit source file `pebble-js-app.js` for personalized use.
+But don't forget to edit source file `pebble-js-app.js` for personalized use. Currently it fetches the demo json responses in the demo folder.

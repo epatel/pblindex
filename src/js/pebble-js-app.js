@@ -51,12 +51,12 @@ Pebble.addEventListener("appmessage",
                         function(e) {
                           if (e.payload.names) {
                             // http://nnnn/nnnn.names should return something like
-                            // {"0":"OMXS30","1":"Dow Jones","2":"Nasdaq","3":"DAX","4":"Nikkei"}
-                            fetchList("names", "http://nnnn/nnnn.names");
+                            // {"0":"OMXS30","1":"Dow Jones","2":"Nasdaq","3":"DAX","4":"Nikkei","5":"S&P500"}
+                            fetchList("names", "https://raw2.github.com/epatel/pblindex/master/demo/pbl-index.names.json");
                           }
                           if (e.payload.values) {
                             // http://nnnn/nnnn.values should return something like
-                            // {"0":"1210","1":"15464","2":"3600","3":"8212","4":"14506"}
-                            fetchList("values", "http://nnnn/nnnn.values");
+                            // {"0":"1210","1":"15464","2":"3600","3":"8212","4":"14506","5":"1764"}
+                            fetchList("values", "https://raw2.github.com/epatel/pblindex/master/demo/pbl-index.values.json");
                           }
                         });
